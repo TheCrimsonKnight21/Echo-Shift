@@ -4,7 +4,8 @@ using UnityEngine.Events;
 using UnityEngine.InputSystem;
 
 public class PlayerJump : MonoBehaviour
-{
+{   
+    [SerializeField] float fallGravity = 25f;									// Gravity scale when the player is descending in a jump
     [SerializeField] float jumpGravity = 2f;									// Gravity scale when the player is ascending in a jump
     [SerializeField] float lowJumpGravity = 8f;									// Gravity scale when the player releases the jump button early
 	[SerializeField] float jumpBufferTime = 0.1f;
@@ -41,12 +42,17 @@ public class PlayerJump : MonoBehaviour
 		}
         
         // Apply variable jump gravity based on height and button hold
-		if (controller.m_Rigidbody2D.linearVelocity.y > 0)
+		if (controller.m_Rigidbody2D.linearVelocity.y < 0)
 		{
-			if (controller.jumpHeld)
-				gravityMultiplier = jumpGravity;
-			else
-				gravityMultiplier = lowJumpGravity;
+			gravityMultiplier = fallGravity / controller.BaseGravity;
+        }
+        else if (controller.m_Rigidbody2D.linearVelocity.y > 0 && !controller.jumpHeld)
+        {
+            gravityMultiplier = lowJumpGravity;
+        }
+        else if (controller.m_Rigidbody2D.linearVelocity.y > 0)
+        {
+            gravityMultiplier = jumpGravity;
 		}
         else
         {

@@ -2,7 +2,7 @@ using UnityEngine;
 
 public class PlayerDash : MonoBehaviour
 {   
-    [SerializeField] private float dashMultiplayer = 30f;								// Speed applied when the player dashes
+    [SerializeField] private float dashMultiplayer = 15f;								// Speed applied when the player dashes
     [SerializeField] private float dashDuration = 0.2f;							// Duration of the dash in seconds
 	[SerializeField] private float dashCooldown = 1f;							// Cooldown time between dashes in seconds
 
@@ -28,13 +28,14 @@ public class PlayerDash : MonoBehaviour
             dashCooldownTimer = dashCooldown; 
             controller.dashPressed = false;
             controller.TryChangeState(PlayerController.PlayerState.Dashing);
-            controller.AddSpeedModifier(dashMultiplayer);
+            Vector2 velocity = new Vector2(controller.moveValue * dashMultiplayer, controller.m_Rigidbody2D.linearVelocity.y);
+            controller.m_Rigidbody2D.linearVelocity = velocity;
             controller.OverrideGravity(0f); 
         }
         
         if (dashTimer <= 0f && dashTimer + Time.fixedDeltaTime > 0f) // Just ended dash
         {
-            controller.RemoveSpeedModifier(dashMultiplayer);
+
             controller.TryChangeState(PlayerController.PlayerState.Normal);
             controller.ClearGravityOverride();
         }
