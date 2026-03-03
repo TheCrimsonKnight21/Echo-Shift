@@ -5,8 +5,8 @@ using UnityEngine.InputSystem;
 
 public class PlayerJump : MonoBehaviour
 {
-    [SerializeField] float jumpGravity = .33f;									// Gravity scale when the player is ascending in a jump
-    [SerializeField] float lowJumpGravity = 1.33f;									// Gravity scale when the player releases the jump button early
+    [SerializeField] float jumpGravity = 2f;									// Gravity scale when the player is ascending in a jump
+    [SerializeField] float lowJumpGravity = 8f;									// Gravity scale when the player releases the jump button early
 	[SerializeField] float jumpBufferTime = 0.1f;
 	[SerializeField] float coyoteTime = 0.1f;
 	[SerializeField] float apexThreshold = 1f;
@@ -36,9 +36,11 @@ public class PlayerJump : MonoBehaviour
 			// start jump
 			controller.m_Grounded = false;
 			controller.m_Rigidbody2D.linearVelocity = new Vector2(controller.m_Rigidbody2D.linearVelocity.x, controller.jumpVelocity);
-
 			controller.jumpBufferTimer = 0f;
+			controller.coyoteTimer = 0f;
 		}
+        
+        // Apply variable jump gravity based on height and button hold
 		if (controller.m_Rigidbody2D.linearVelocity.y > 0)
 		{
 			if (controller.jumpHeld)
@@ -46,14 +48,14 @@ public class PlayerJump : MonoBehaviour
 			else
 				gravityMultiplier = lowJumpGravity;
 		}
+        else
+        {
+            gravityMultiplier = 1f;
+        }
         
 		float apexPoint = Mathf.InverseLerp(apexThreshold, 0, Mathf.Abs(controller.m_Rigidbody2D.linearVelocity.y));
-
 		gravityMultiplier *= Mathf.Lerp(1f, apexGravityMultiplier, apexPoint);
 
         controller.OverrideGravity(gravityMultiplier);
-		controller.jumpBufferTimer = 0f;
-		controller.coyoteTimer = 0f;
-
     }
 }

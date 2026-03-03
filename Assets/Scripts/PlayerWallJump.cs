@@ -41,6 +41,8 @@ public class PlayerWallJump : MonoBehaviour
 				controller.jumpVelocity
 			);
 			controller.jumpBufferTimer = 0f;
+			controller.coyoteTimer = 0f;
+			controller.TryChangeState(PlayerController.PlayerState.WallJumping);
 		}
     }
 }

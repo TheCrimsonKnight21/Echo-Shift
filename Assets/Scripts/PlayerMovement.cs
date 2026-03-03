@@ -2,7 +2,7 @@ using UnityEngine;
 
 public class PlayerMovement : MonoBehaviour
 {
-    [SerializeField] float acceleration = 40f;									// Acceleration while grounded. Higher means faster to reach max speed.
+    [SerializeField] float acceleration = 30f;									// Acceleration while grounded. Higher means faster to reach max speed.
 	[SerializeField] float deceleration = 160f;									// Deceleration while grounded. Higher means faster to stop from max speed.
 	[SerializeField] float airAcceleration = 25f;								// Acceleration while in the air. Higher means faster to reach max speed.
     [Range(0, 1)] [SerializeField] private float crouchMultiplier = .2f;			// Amount of maxSpeed applied to crouching movement. 1 = 100%
@@ -21,49 +21,44 @@ public class PlayerMovement : MonoBehaviour
     }
     public void Move()
     {
-        // If crouching, check to see if the character can stand up
-		if (!crouching)
-		{
-			// If the character has a ceiling preventing them from standing up, keep them crouching
-			if (Physics2D.OverlapCircle(m_CeilingCheck.position, k_CeilingRadius, controller.m_WhatIsGround) && controller.TryChangeState(PlayerController.PlayerState.Crouching))
-			{
-				crouching = true;
-			}
-		}
-
-	
+        // Update crouch state based on player input
+        bool wantsToCrouch = controller.crouch;
+        
+        // If not crouching but player wants to crouch
+        if (!crouching && wantsToCrouch)
+        {
+            // Check if there's no ceiling blocking
+            if (!Physics2D.OverlapCircle(m_CeilingCheck.position, k_CeilingRadius, controller.m_WhatIsGround) 
+                && controller.TryChangeState(PlayerController.PlayerState.Crouching))
+            {
+                crouching = true;
+                m_wasCrouching = true;
+                controller.NotifyCrouch(true);
+                controller.AddSpeedModifier(crouchMultiplier);
+                if (m_CrouchDisableCollider != null)
+                    m_CrouchDisableCollider.enabled = false;
+            }
+        }
+        // If crouching but player stopped holding crouch
+        else if (crouching && !wantsToCrouch)
+        {
+            // Check if there's no ceiling blocking
+            if (!Physics2D.OverlapCircle(m_CeilingCheck.position, k_CeilingRadius, controller.m_WhatIsGround)
+                && controller.TryChangeState(PlayerController.PlayerState.Normal))
+            {
+                crouching = false;
+                m_wasCrouching = false;
+                controller.NotifyCrouch(false);
+                controller.RemoveSpeedModifier(crouchMultiplier);
+                if (m_CrouchDisableCollider != null)
+                    m_CrouchDisableCollider.enabled = true;
+            }
+        }
 		if (controller.m_Grounded || controller.m_AirControl)
         {
-            if (!m_wasCrouching && crouching)
-				{
-					m_wasCrouching = true;
-					controller.NotifyCrouch(true);
-				}
-
-				// Reduce the speed by the crouchSpeed multiplier
-				controller.AddSpeedModifier(crouchMultiplier);
-
-				// Disable one of the colliders when crouching
-				if (m_CrouchDisableCollider != null)
-					m_CrouchDisableCollider.enabled = false;
-			} else
-			{
-				// Enable the collider when not crouching
-				if (m_CrouchDisableCollider != null)
-					m_CrouchDisableCollider.enabled = true;
-
-				if (m_wasCrouching && controller.TryChangeState(PlayerController.PlayerState.Normal))
-				{
-					m_wasCrouching = false;
-					controller.NotifyCrouch(false);
-                    controller.RemoveSpeedModifier(crouchMultiplier);
-				}
-			}
-
             float targetSpeed = controller.moveValue * controller.CurrentMoveSpeed;
             float accelRate;
 
-			// Apply dash boost if active
             if (Mathf.Sign(targetSpeed) != Mathf.Sign(controller.m_Rigidbody2D.linearVelocity.x) &&
 				Mathf.Abs(targetSpeed) > 0.01f)
 			{
@@ -77,7 +72,6 @@ public class PlayerMovement : MonoBehaviour
 			{
 				accelRate = deceleration;
 			}
-            Debug.Log($"Target Speed: {targetSpeed}, Current Speed: {controller.m_Rigidbody2D.linearVelocity.x}, Accel Rate: {accelRate}");
 			float newX = Mathf.MoveTowards(
 				controller.m_Rigidbody2D.linearVelocity.x,
 				targetSpeed,
@@ -100,6 +94,8 @@ public class PlayerMovement : MonoBehaviour
 				Flip();
 			}
         }
+
+    }
     private void Flip()
 	{
 		// Switch the way the player is labelled as facing.

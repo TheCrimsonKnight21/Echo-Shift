@@ -6,11 +6,10 @@ using System.Collections.Generic;
 public class PlayerController : MonoBehaviour
 {
     [SerializeField] public float jumpVelocity = 13f;							      	// Amount of force added when the player jumps.
-    [SerializeField] public float baseMoveSpeed = 40f;                                      // Speed at which the player runs horizontally. Higher means faster.
-    
+    [SerializeField] public float baseMoveSpeed = 10f;                                      // Speed at which the player runs horizontally. Higher means faster.
     [SerializeField] public float BaseGravity = 6f;
 
-    [SerializeField] public bool m_AirControl = false;							// Whether or not a player can steer while jumping;
+    [SerializeField] public bool m_AirControl = true;							// Whether or not a player can steer while jumping;
     [SerializeField] public LayerMask m_WhatIsGround;							// A mask determining what is ground to the character
 	[SerializeField] private Transform m_GroundCheck;
     
@@ -70,6 +69,8 @@ public class PlayerController : MonoBehaviour
         get
         {
             float finalMultiplier = 1f;
+            if (speedModifiers.Count == 0)
+                return baseMoveSpeed;
             foreach(var mod in speedModifiers)
                 finalMultiplier *= mod;
 
@@ -87,10 +88,12 @@ public class PlayerController : MonoBehaviour
 		if (OnCrouchEvent == null)
 			OnCrouchEvent = new BoolEvent();
 
+        movement = GetComponent<PlayerMovement>();
         jump = GetComponent<PlayerJump>();
         dash = GetComponent<PlayerDash>();
         wallJump = GetComponent<PlayerWallJump>();
 
+        movement.Initialize(this);
         jump.Initialize(this);
         dash.Initialize(this);
         wallJump.Initialize(this);
@@ -104,7 +107,7 @@ public class PlayerController : MonoBehaviour
 
         if (jumpAction != null)
         {
-            jumpAction.performed += ctx => { this.jumpPressed = true; this.jumpHeld = true; };
+            jumpAction.performed += ctx => { this.jumpPressed = true; this.jumpHeld = true; this.jumpBufferTimer = 0.1f; };
             jumpAction.canceled  += ctx => { this.jumpHeld = false; };
         }
         else
@@ -121,6 +124,10 @@ public class PlayerController : MonoBehaviour
     void FixedUpdate()
     {
         ReadInput();
+        
+        // Update jump buffer timer
+        jumpBufferTimer -= Time.fixedDeltaTime;
+        
         bool wasGrounded = m_Grounded;
 		m_Grounded = false;
 
@@ -134,16 +141,29 @@ public class PlayerController : MonoBehaviour
 					OnLandEvent.Invoke();
 			}
 		}
-        // if (CanMove())
-        // {
-        //     movement.Move();
-        // }
-        movement.Move();
+        
+        // Update movement
+        if (CanMove())
+        {
+            movement.Move();
+        }
+
+        // Handle jumping
         if (this.jumpPressed)
         {
             jump.Jump();
             this.jumpPressed = false;
         }
+        else
+        {
+            jump.Jump(); // Still apply jump gravity even when not pressing jump
+        }
+        
+        // Handle dashing
+        dash.Dash();
+        
+        // Handle wall jumping
+        wallJump.WallJump();
         
         ApplyGravity();
 
@@ -162,8 +182,7 @@ public class PlayerController : MonoBehaviour
 
     bool CanMove()
     {
-         return CurrentState != PlayerState.Dashing
-        && CurrentState != PlayerState.EchoPlayback
+         return CurrentState != PlayerState.EchoPlayback
         && CurrentState != PlayerState.Dead;
     }
 
