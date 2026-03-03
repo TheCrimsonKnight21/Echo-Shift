@@ -25,7 +25,6 @@ public class PlayerController : MonoBehaviour
     public float coyoteTimer;
     
     private List<InputFrame> recordedFrames = new List<InputFrame>();
-    private bool isRecording = false;
     private float echoTimer = 0f;
     private const float echoRecordDuration = 5f; // Maximum duration of echo recording in seconds
     const float k_GroundedRadius = .2f; 
@@ -65,11 +64,15 @@ public class PlayerController : MonoBehaviour
     public float moveValue;
     public bool dashPressed;
 
-
+    private float cachedMove;
+    private bool cachedJumpPressed;
+    private bool cachedJumpHeld;
+    private bool cachedDashPressed;
+    private bool cachedCrouch;
     InputAction moveAction;
     InputAction jumpAction;
     InputAction crouchAction;
-    PlayerState CurrentState = PlayerState.Normal;
+    public PlayerState CurrentState = PlayerState.Normal;
     InputAction dashAction;
 
     InputAction echoAction;
@@ -121,9 +124,10 @@ public class EchoInputSource : IInputSource
         return frames[Mathf.Clamp(index, 0, frames.Count - 1)];
     }
 
-    private bool lastJumpPressed;
 
     public float GetMove() => GetCurrentFrame().move.x;
+
+    private bool lastJumpPressed;
 
     public bool GetJumpPressed()
     {
@@ -132,10 +136,17 @@ public class EchoInputSource : IInputSource
         lastJumpPressed = frame.JumpPressed;
         return result;
     }
-
     public bool GetJumpHeld() => GetCurrentFrame().JumpHeld;
     public bool GetCrouch() => GetCurrentFrame().CrouchPressed;
-    public bool GetDashPressed() => GetCurrentFrame().DashPressed;
+    private bool lastDashPressed;
+
+    public bool GetDashPressed()
+    {
+        var frame = GetCurrentFrame();
+        bool result = frame.DashPressed && !lastDashPressed;
+        lastDashPressed = frame.DashPressed;
+        return result;
+    }
 }
 public class RealInputSource : IInputSource
 {
@@ -226,16 +237,41 @@ public class RealInputSource : IInputSource
 
     void Update()
     {
-        if (isEcho)
-        return;
-        if (echoAction != null && echoAction.WasPressedThisFrame())
-        {
-            SpawnEcho();
-        }
+            if (inputSource == null)
+                return;
+
+            cachedMove = inputSource.GetMove();
+
+            if (inputSource.GetJumpPressed())
+                cachedJumpPressed = true;
+
+            cachedJumpHeld = inputSource.GetJumpHeld();
+
+            if (inputSource.GetDashPressed())
+                cachedDashPressed = true;
+
+            cachedCrouch = inputSource.GetCrouch();
+
+
+            if (cachedJumpPressed)
+            jumpBufferTimer = 0.1f;
+
+            
+            if (isEcho)
+                return;
+            if (echoAction != null && echoAction.WasPressedThisFrame())
+                SpawnEcho();
     }
     void FixedUpdate()
     {
-        ReadInput();
+       
+        moveValue = cachedMove;
+        jumpPressed = cachedJumpPressed;
+        jumpHeld = cachedJumpHeld;
+        dashPressed = cachedDashPressed;
+        crouch = cachedCrouch;
+        cachedJumpPressed = false;
+        cachedDashPressed = false;
         if (!isEcho)
         {
             recordedFrames.Add(new InputFrame
@@ -258,10 +294,6 @@ public class RealInputSource : IInputSource
         }
         
 
-        if (jumpPressed)
-        {
-            jumpBufferTimer = 0.1f;
-        }
 
         CheckGround();
 
@@ -367,13 +399,8 @@ public class RealInputSource : IInputSource
     {
         recordedFrames.Clear();
         recordingStartTime = Time.fixedTime;
-        isRecording = true;
     }
 
-    public void StopRecording()
-    {
-        isRecording = false;
-    }
     public void SetEchoInput(List<InputFrame> frames)
     {
         isEcho = true;

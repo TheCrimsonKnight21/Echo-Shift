@@ -747,7 +747,7 @@ Camera:
   far clip plane: 1000
   field of view: 60
   orthographic: 1
-  orthographic size: 4
+  orthographic size: 9
   m_Depth: 0
   m_CullingMask:
     serializedVersion: 2
@@ -1011,6 +1011,7 @@ MonoBehaviour:
   crouch: 0
   moveValue: 0
   dashPressed: 0
+  CurrentState: 0
   OnLandEvent:
     m_PersistentCalls:
       m_Calls: []
@@ -1085,8 +1086,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8ea631252f2cf1f42bc6a6bfef4dbb48, type: 3}
   m_Name: 
   m_EditorClassIdentifier: '::'
-  dashMultiplayer: 15
-  dashDuration: 0.2
+  dashMultiplayer: 25
+  dashDuration: 0.1
   dashCooldown: 1
   dashTimer: 0
   dashCooldownTimer: 0

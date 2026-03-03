@@ -27,6 +27,10 @@ public class PlayerJump : MonoBehaviour
 
     public void Jump()
     {
+        if (controller.CurrentState != PlayerController.PlayerState.Dashing)
+        {
+            controller.OverrideGravity(gravityMultiplier);
+        }
         if (controller.m_Grounded)
 				controller.coyoteTimer = coyoteTime;
 			else
@@ -52,7 +56,7 @@ public class PlayerJump : MonoBehaviour
         }
         else if (controller.m_Rigidbody2D.linearVelocity.y > 0)
         {
-            gravityMultiplier = jumpGravity;
+            gravityMultiplier = jumpGravity ;
 		}
         else
         {

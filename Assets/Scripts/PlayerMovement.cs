@@ -21,6 +21,8 @@ public class PlayerMovement : MonoBehaviour
     }
     public void Move()
     {
+        if (controller.CurrentState == PlayerController.PlayerState.Dashing)
+         return;
         // Update crouch state based on player input
         bool wantsToCrouch = controller.crouch;
         
