@@ -988,30 +988,29 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 2130557837d250f4591b009223a6ac83, type: 3}
   m_Name: 
   m_EditorClassIdentifier: '::'
-  jumpVelocity: 13
   baseMoveSpeed: 10
-  BaseGravity: 6
   m_AirControl: 1
+  jumpVelocity: 13
+  BaseGravity: 6
   m_WhatIsGround:
     serializedVersion: 2
     m_Bits: 55
   m_GroundCheck: {fileID: 2071643202}
   echoPrefab: {fileID: 5393984937297836328, guid: 8a0756a2d5797a447b4cd1a2832e648f, type: 3}
-  echoSpawnPoint: {fileID: 0}
   movement: {fileID: 1741921547}
   jump: {fileID: 1741921546}
   dash: {fileID: 1741921549}
   wallJump: {fileID: 1741921548}
-  jumpBufferTimer: 0
-  coyoteTimer: 0
-  m_Grounded: 0
   m_Rigidbody2D: {fileID: 1741921539}
+  CurrentState: 0
+  m_Grounded: 0
+  moveValue: 0
   jumpPressed: 0
   jumpHeld: 0
   crouch: 0
-  moveValue: 0
   dashPressed: 0
-  CurrentState: 0
+  jumpBufferTimer: 0
+  coyoteTimer: 0
   OnLandEvent:
     m_PersistentCalls:
       m_Calls: []
@@ -1030,10 +1029,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 3fcdc761ef9fe7e40b6c1a821458bbda, type: 3}
   m_Name: 
   m_EditorClassIdentifier: '::'
-  fallGravity: 25
   jumpGravity: 2
+  fallGravity: 25
   lowJumpGravity: 8
-  jumpBufferTime: 0.1
   coyoteTime: 0.1
   apexThreshold: 1
   apexGravityMultiplier: 0.5
@@ -1071,7 +1069,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e0c2f9a95d4c9184a964e3dcd97c1f08, type: 3}
   m_Name: 
   m_EditorClassIdentifier: '::'
-  wallJumpSpeed: 10
+  wallJumpSpeed: 18
   m_RightWallCheck: {fileID: 1469530738}
   m_LeftWallCheck: {fileID: 1349594822}
 --- !u!114 &1741921549
@@ -1087,7 +1085,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: '::'
   dashMultiplayer: 25
-  dashDuration: 0.1
+  dashDuration: 0.15
   dashCooldown: 1
   dashTimer: 0
   dashCooldownTimer: 0
