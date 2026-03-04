@@ -32,6 +32,11 @@ public class PlayerMovement : MonoBehaviour
     #endregion
 
     #region Initialization
+    /// <summary>
+    /// Initializes the movement system with a reference to the player controller.
+    /// Must be called during PlayerController.Awake() before any movement logic executes.
+    /// </summary>
+    /// <param name="controller">The PlayerController instance that owns this movement subsystem.</param>
     public void Initialize(PlayerController controller)
     {
         this.controller = controller;
@@ -39,6 +44,17 @@ public class PlayerMovement : MonoBehaviour
     #endregion
 
     #region Movement Logic
+    /// <summary>
+    /// Executes the complete movement cycle each frame: crouch state updates, acceleration/deceleration, and sprite flipping.
+    /// Called from PlayerController.FixedUpdate() and skipped during dash state.
+    /// </summary>
+    /// <remarks>
+    /// Execution order:
+    /// 1. Early return if dashing (dash handles its own velocity)
+    /// 2. Update crouch state transitions
+    /// 3. Apply movement acceleration if grounded or air control enabled
+    /// 4. Update player facing direction based on input
+    /// </remarks>
     public void Move()
     {
         if (controller.CurrentState == PlayerController.PlayerState.Dashing)
@@ -71,8 +87,14 @@ public class PlayerMovement : MonoBehaviour
 
     /// <summary>
     /// Attempts to start crouch if ceiling check passes and state transition succeeds.
-    /// Disables collider to allow passing under low areas.
+    /// Disables collider to allow passing under low areas and applies speed reduction modifier.
     /// </summary>
+    /// <remarks>
+    /// Crouch only initiates if:
+    /// 1. Ceiling check at m_CeilingCheck position is clear
+    /// 2. State transition to Crouching state is valid
+    /// Notifies controller of crouch state and disables collider for collision size reduction.
+    /// </remarks>
     private void TryStartCrouch()
     {
         if (!Physics2D.OverlapCircle(m_CeilingCheck.position, k_CeilingRadius, controller.m_WhatIsGround)
@@ -89,8 +111,14 @@ public class PlayerMovement : MonoBehaviour
 
     /// <summary>
     /// Attempts to stop crouch if ceiling check passes and state transition succeeds.
-    /// Re-enables collider when standing up.
+    /// Re-enables collider and removes speed reduction modifier when standing up.
     /// </summary>
+    /// <remarks>
+    /// Crouch only ends if:
+    /// 1. Ceiling check at m_CeilingCheck position is clear (space to stand)
+    /// 2. State transition from Crouching to Normal is valid
+    /// Restores full-size collider and removes crouch speed penalty.
+    /// </remarks>
     private void TryStopCrouch()
     {
         if (!Physics2D.OverlapCircle(m_CeilingCheck.position, k_CeilingRadius, controller.m_WhatIsGround)
@@ -111,6 +139,10 @@ public class PlayerMovement : MonoBehaviour
     /// Applies smooth movement acceleration/deceleration to match target speed.
     /// Increases acceleration when changing direction for responsive control.
     /// </summary>
+    /// <remarks>
+    /// Uses Mathf.MoveTowards to smoothly transition to target speed using the calculated acceleration rate.
+    /// Preserves Y velocity (gravity) while only modifying X velocity.
+    /// </remarks>
     private void ApplyMovement()
     {
         float targetSpeed = controller.moveValue * controller.CurrentMoveSpeed;
@@ -126,9 +158,16 @@ public class PlayerMovement : MonoBehaviour
     }
 
     /// <summary>
-    /// Calculates acceleration rate based on target speed and current velocity.
-    /// Returns higher acceleration for direction changes, standard for normal movement, deceleration for stops.
+    /// Calculates acceleration rate based on movement state and direction.
     /// </summary>
+    /// <param name="targetSpeed">The desired horizontal speed to reach (input * current move speed).</param>
+    /// <returns>The acceleration rate in units/second to apply this frame.</returns>
+    /// <remarks>
+    /// Returns different rates based on conditions:
+    /// - Direction change: acceleration * 2 (faster snappy turns)
+    /// - Normal movement: acceleration (grounded) or airAcceleration (airborne)
+    /// - Deceleration: deceleration rate (when targetSpeed is ~0)
+    /// </remarks>
     private float CalculateAccelerationRate(float targetSpeed)
     {
         if (Mathf.Sign(targetSpeed) != Mathf.Sign(controller.m_Rigidbody2D.linearVelocity.x)
@@ -167,6 +206,10 @@ public class PlayerMovement : MonoBehaviour
         transform.localScale = theScale;
     }
 
+    /// <summary>
+    /// Returns the direction the player is currently facing.
+    /// </summary>
+    /// <returns>1 if facing right, -1 if facing left. Used for in-place dashing and directional checks.</returns>
     public float GetFacingDirection()
     {
         return m_FacingRight ? 1f : -1f;

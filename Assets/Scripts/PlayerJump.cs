@@ -29,6 +29,11 @@ public class PlayerJump : MonoBehaviour
     #endregion
 
     #region Initialization
+    /// <summary>
+    /// Initializes the jump system with a reference to the player controller.
+    /// Must be called during PlayerController.Awake() before any jump logic executes.
+    /// </summary>
+    /// <param name="controller">The PlayerController instance that owns this jump subsystem.</param>
     public void Initialize(PlayerController controller)
     {
         this.controller = controller;
@@ -36,6 +41,14 @@ public class PlayerJump : MonoBehaviour
     #endregion
 
     #region Main Jump Logic
+    /// <summary>
+    /// Executes jump logic each fixed frame including coyote time decrement, jump input buffering,
+    /// and gravity multiplier calculations. Called from PlayerController.FixedUpdate().
+    /// </summary>
+    /// <remarks>
+    /// The jump executes when both coyoteTimer > 0 and jumpBufferTimer > 0, allowing forgiving jump inputs.
+    /// Gravity override is skipped during dashing to allow horizontal-only movement.
+    /// </remarks>
     public void Jump()
     {
         if (controller.CurrentState != PlayerController.PlayerState.Dashing)
@@ -68,9 +81,16 @@ public class PlayerJump : MonoBehaviour
 
     #region Private Helper Methods
     /// <summary>
-    /// Determines gravity multiplier based on vertical velocity and jump button state.
-    /// Falls faster when descending, falls slower when button released mid-jump.
+    /// Determines the gravity multiplier based on vertical velocity and jump button state.
+    /// Provides responsive control by falling faster on descent and slower when button is released.
     /// </summary>
+    /// <remarks>
+    /// Gravity multiplier values:
+    /// - Descending: fallGravity (25)
+    /// - Ascending with button released: lowJumpGravity (8)
+    /// - Ascending with button held: jumpGravity (2)
+    /// - At peak (near zero velocity): 1.0
+    /// </remarks>
     private void CalculateJumpGravity()
     {
         if (controller.m_Rigidbody2D.linearVelocity.y < 0)
@@ -93,8 +113,12 @@ public class PlayerJump : MonoBehaviour
 
     /// <summary>
     /// Reduces gravity at jump apex for floaty feel. Uses inverse lerp to smoothly transition
-    /// reduced gravity only when velocity is near zero at the peak of the jump.
+    /// reduced gravity only when vertical velocity is near zero at the peak of the jump.
     /// </summary>
+    /// <remarks>
+    /// This creates the classic platformer feel where the player hangs in air momentarily at the jump peak.
+    /// The effect is strongest when velocity is below apexThreshold and scales using apexGravityMultiplier.
+    /// </remarks>
     private void ApplyApexGravityEffect()
     {
         float apexPoint = Mathf.InverseLerp(apexThreshold, 0, Mathf.Abs(controller.m_Rigidbody2D.linearVelocity.y));
