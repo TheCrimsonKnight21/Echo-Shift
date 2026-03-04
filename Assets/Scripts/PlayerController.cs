@@ -265,6 +265,8 @@ public class PlayerController : MonoBehaviour
     /// <summary>
     /// Attempts to transition to a new state if it's a valid transition from the current state.
     /// </summary>
+    /// <param name="newState">The target PlayerState to transition to.</param>
+    /// <returns>True if the transition succeeded, false if the transition is invalid from the current state.</returns>
     public bool TryChangeState(PlayerState newState)
     {
         if (!IsValidTransition(CurrentState, newState))
@@ -275,8 +277,10 @@ public class PlayerController : MonoBehaviour
     }
 
     /// <summary>
-    /// Overrides default gravity with a custom multiplier (0 disables gravity, -1 restores default).
+    /// Overrides default gravity with a custom multiplier. 
+    /// Used to control gravity during specific actions like jumping and dashing.
     /// </summary>
+    /// <param name="multiplier">Gravity multiplier to apply. 0 disables gravity entirely, positive values scale gravity, -1 restores default gravity.</param>
     public void OverrideGravity(float multiplier)
     {
         gravityOverride = multiplier;
@@ -313,8 +317,10 @@ public class PlayerController : MonoBehaviour
     }
 
     /// <summary>
-    /// Switches input source to echo playback mode, replaying recorded input frames.
+    /// Switches input source to echo playback mode, replaying previously recorded input frames.
+    /// This enables the ghost/echo character mechanics.
     /// </summary>
+    /// <param name="frames">List of recorded InputFrame structures containing movement, jump, dash, and crouch inputs at specific times and positions.</param>
     public void SetEchoInput(List<InputFrame> frames)
     {
         isEcho = true;
@@ -327,8 +333,13 @@ public class PlayerController : MonoBehaviour
     }
 
     /// <summary>
-    /// Detects ground contact using overlap circle. Invokes land event when transitioning from airborne to grounded.
+    /// Detects ground contact using overlap circle at the ground check position.
+    /// Automatically invokes the OnLandEvent when transitioning from airborne to grounded state.
     /// </summary>
+    /// <remarks>
+    /// Uses Physics2D.OverlapCircleAll with the m_WhatIsGround layer mask to detect colliding ground.
+    /// Updates m_Grounded boolean and tracks landing state for event triggering.
+    /// </remarks>
     public void CheckGround()
     {
         bool wasGrounded = m_Grounded;
@@ -358,6 +369,9 @@ public class PlayerController : MonoBehaviour
     /// Validates state transitions to prevent invalid state combinations.
     /// Most states can only transition to Normal or specific states.
     /// </summary>
+    /// <param name="from">The current PlayerState.</param>
+    /// <param name="to">The desired target PlayerState.</param>
+    /// <returns>True if the transition from 'from' to 'to' is allowed, false otherwise.</returns>
     private bool IsValidTransition(PlayerState from, PlayerState to)
     {
         switch (from)
@@ -389,9 +403,16 @@ public class PlayerController : MonoBehaviour
     }
 
     /// <summary>
-    /// Applies gravity using override if set, otherwise uses base gravity.
-    /// Override of -1 restores default behavior.
+    /// Applies gravity to the Rigidbody2D using the override multiplier if set, otherwise uses base gravity.
+    /// Called every FixedUpdate to apply frame-by-frame gravity scaling based on jump state and actions.
     /// </summary>
+    /// <remarks>
+    /// Override value ranges:
+    /// -1 = Use base gravity
+    /// 0 = No gravity (used during dash)
+    /// 0.5 = Half gravity (used during jump apex)
+    /// 25 = High gravity (used during fall)
+    /// </remarks>
     private void ApplyGravity()
     {
         if (gravityOverride >= 0f)
