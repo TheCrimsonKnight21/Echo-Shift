@@ -3,76 +3,82 @@ using UnityEngine.InputSystem;
 using UnityEngine.Events;
 using System.Collections.Generic;
 
+/// <summary>
+/// Central player controller that manages state, input from multiple sources (real/echo playback),
+/// and coordinates behavior through specialized subsystem components (movement, jump, dash, wall jump).
+/// </summary>
 public class PlayerController : MonoBehaviour
 {
-    #region Serialized Fields
-    [Header("Movement")]
-    [SerializeField] public float baseMoveSpeed = 10f;
-    [SerializeField] public bool m_AirControl = true;
 
-    [Header("Jumping")]
-    [SerializeField] public float jumpVelocity = 13f;
-    [SerializeField] public float BaseGravity = 6f;
+    #region Variables and Constants
+        #region Serialized Fields
+        [Header("Movement")]
+        [SerializeField] public float baseMoveSpeed = 10f;
+        [SerializeField] public bool m_AirControl = true;
 
-    [Header("Ground & Wall Detection")]
-    [SerializeField] public LayerMask m_WhatIsGround;
-    [SerializeField] private Transform m_GroundCheck;
+        [Header("Jumping")]
+        [SerializeField] public float jumpVelocity = 13f;
+        [SerializeField] public float BaseGravity = 6f;
 
-    [Header("Echo System")]
-    [SerializeField] private GameObject echoPrefab;
+        [Header("Ground & Wall Detection")]
+        [SerializeField] public LayerMask m_WhatIsGround;
+        [SerializeField] private Transform m_GroundCheck;
+
+        [Header("Echo System")]
+        [SerializeField] private GameObject echoPrefab;
+        #endregion
+
+        #region Constants
+        private const float k_GroundedRadius = 0.2f;
+        private const float echoRecordDuration = 5f;
+        #endregion
+
+        #region Component References
+        [Header("Components")]
+        public PlayerMovement movement;
+        public PlayerJump jump;
+        public PlayerDash dash;
+        public PlayerWallJump wallJump;
+        public Rigidbody2D m_Rigidbody2D;
+        #endregion
+
+        #region State & Input
+        [Header("States & Inputs")]
+        public PlayerState CurrentState = PlayerState.Normal;
+        public bool m_Grounded;
+        
+        private IInputSource inputSource;
+        private bool isEcho = false;
+        #endregion
+
+        #region Input Values (Frame-based)
+        public float moveValue;
+        public bool jumpPressed;
+        public bool jumpHeld;
+        public bool crouch;
+        public bool dashPressed;
+        
+        private float cachedMove;
+        private bool cachedJumpPressed;
+        private bool cachedJumpHeld;
+        private bool cachedDashPressed;
+        private bool cachedCrouch;
+        #endregion
+
+        #region Timers
+        public float jumpBufferTimer;
+        public float coyoteTimer;
+        #endregion
+
+        #region Movement Modifiers
+        private List<float> speedModifiers = new List<float>();
+        private float gravityOverride = -1f;
+        #endregion
+
+        #region Echo Recording
+        private List<InputFrame> recordedFrames = new List<InputFrame>();
+        #endregion
     #endregion
-
-    #region Constants
-    private const float k_GroundedRadius = 0.2f;
-    private const float echoRecordDuration = 5f;
-    #endregion
-
-    #region Component References
-    [Header("Components")]
-    public PlayerMovement movement;
-    public PlayerJump jump;
-    public PlayerDash dash;
-    public PlayerWallJump wallJump;
-    public Rigidbody2D m_Rigidbody2D;
-    #endregion
-
-    #region State & Input
-     [Header("States & Inputs")]
-    public PlayerState CurrentState = PlayerState.Normal;
-    public bool m_Grounded;
-    
-    private IInputSource inputSource;
-    private bool isEcho = false;
-    #endregion
-
-    #region Input Values (Frame-based)
-    public float moveValue;
-    public bool jumpPressed;
-    public bool jumpHeld;
-    public bool crouch;
-    public bool dashPressed;
-    
-    private float cachedMove;
-    private bool cachedJumpPressed;
-    private bool cachedJumpHeld;
-    private bool cachedDashPressed;
-    private bool cachedCrouch;
-    #endregion
-
-    #region Timers
-    public float jumpBufferTimer;
-    public float coyoteTimer;
-    #endregion
-
-    #region Movement Modifiers
-    private List<float> speedModifiers = new List<float>();
-    private float gravityOverride = -1f;
-    #endregion
-
-    #region Echo Recording
-    private List<InputFrame> recordedFrames = new List<InputFrame>();
-    #endregion
-
     #region Input System Actions
     private InputAction moveAction;
     private InputAction jumpAction;
@@ -233,7 +239,6 @@ public class PlayerController : MonoBehaviour
                 Position = transform.position
             });
 
-            // Remove frames older than echo duration
             while (recordedFrames.Count > 0 &&
                 Time.fixedTime - recordedFrames[0].Time > echoRecordDuration)
             {
@@ -257,6 +262,9 @@ public class PlayerController : MonoBehaviour
     #endregion
 
     #region Public Methods
+    /// <summary>
+    /// Attempts to transition to a new state if it's a valid transition from the current state.
+    /// </summary>
     public bool TryChangeState(PlayerState newState)
     {
         if (!IsValidTransition(CurrentState, newState))
@@ -266,6 +274,9 @@ public class PlayerController : MonoBehaviour
         return true;
     }
 
+    /// <summary>
+    /// Overrides default gravity with a custom multiplier (0 disables gravity, -1 restores default).
+    /// </summary>
     public void OverrideGravity(float multiplier)
     {
         gravityOverride = multiplier;
@@ -301,6 +312,9 @@ public class PlayerController : MonoBehaviour
         recordedFrames.Clear();
     }
 
+    /// <summary>
+    /// Switches input source to echo playback mode, replaying recorded input frames.
+    /// </summary>
     public void SetEchoInput(List<InputFrame> frames)
     {
         isEcho = true;
@@ -312,6 +326,9 @@ public class PlayerController : MonoBehaviour
         inputSource = new RealInputSource(this);
     }
 
+    /// <summary>
+    /// Detects ground contact using overlap circle. Invokes land event when transitioning from airborne to grounded.
+    /// </summary>
     public void CheckGround()
     {
         bool wasGrounded = m_Grounded;
@@ -337,6 +354,10 @@ public class PlayerController : MonoBehaviour
             && CurrentState != PlayerState.Dead;
     }
 
+    /// <summary>
+    /// Validates state transitions to prevent invalid state combinations.
+    /// Most states can only transition to Normal or specific states.
+    /// </summary>
     private bool IsValidTransition(PlayerState from, PlayerState to)
     {
         switch (from)
@@ -367,6 +388,10 @@ public class PlayerController : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// Applies gravity using override if set, otherwise uses base gravity.
+    /// Override of -1 restores default behavior.
+    /// </summary>
     private void ApplyGravity()
     {
         if (gravityOverride >= 0f)
@@ -395,6 +420,10 @@ public class PlayerController : MonoBehaviour
     #endregion
 
     #region Input Source Implementations
+    /// <summary>
+    /// Replays previously recorded input frames at their original timing.
+    /// Synchronizes frame playback to elapsed time and detects button presses to match original input.
+    /// </summary>
     private class EchoInputSource : IInputSource
     {
         private List<PlayerController.InputFrame> frames;
@@ -449,6 +478,10 @@ public class PlayerController : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// Reads real-time input from the InputSystem action map.
+    /// Primary input source when player is actively controlling the character.
+    /// </summary>
     private class RealInputSource : IInputSource
     {
         private PlayerController controller;

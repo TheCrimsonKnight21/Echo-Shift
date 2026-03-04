@@ -1,5 +1,9 @@
 using UnityEngine;
 
+/// <summary>
+/// Handles horizontal movement with friction-based acceleration/deceleration.
+/// Manages crouch state transitions with collision detection and applies velocity changes based on input.
+/// </summary>
 public class PlayerMovement : MonoBehaviour
 {
     #region Serialized Fields - Movement Settings
@@ -37,14 +41,11 @@ public class PlayerMovement : MonoBehaviour
     #region Movement Logic
     public void Move()
     {
-        // Skip movement during dash
         if (controller.CurrentState == PlayerController.PlayerState.Dashing)
             return;
 
-        // Handle crouch state changes
         UpdateCrouchState();
 
-        // Apply movement/acceleration
         if (controller.m_Grounded || controller.m_AirControl)
         {
             ApplyMovement();
@@ -68,6 +69,10 @@ public class PlayerMovement : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// Attempts to start crouch if ceiling check passes and state transition succeeds.
+    /// Disables collider to allow passing under low areas.
+    /// </summary>
     private void TryStartCrouch()
     {
         if (!Physics2D.OverlapCircle(m_CeilingCheck.position, k_CeilingRadius, controller.m_WhatIsGround)
@@ -82,6 +87,10 @@ public class PlayerMovement : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// Attempts to stop crouch if ceiling check passes and state transition succeeds.
+    /// Re-enables collider when standing up.
+    /// </summary>
     private void TryStopCrouch()
     {
         if (!Physics2D.OverlapCircle(m_CeilingCheck.position, k_CeilingRadius, controller.m_WhatIsGround)
@@ -98,6 +107,10 @@ public class PlayerMovement : MonoBehaviour
     #endregion
 
     #region Private Helper Methods - Movement
+    /// <summary>
+    /// Applies smooth movement acceleration/deceleration to match target speed.
+    /// Increases acceleration when changing direction for responsive control.
+    /// </summary>
     private void ApplyMovement()
     {
         float targetSpeed = controller.moveValue * controller.CurrentMoveSpeed;
@@ -112,20 +125,21 @@ public class PlayerMovement : MonoBehaviour
         controller.m_Rigidbody2D.linearVelocity = new Vector2(newX, controller.m_Rigidbody2D.linearVelocity.y);
     }
 
+    /// <summary>
+    /// Calculates acceleration rate based on target speed and current velocity.
+    /// Returns higher acceleration for direction changes, standard for normal movement, deceleration for stops.
+    /// </summary>
     private float CalculateAccelerationRate(float targetSpeed)
     {
-        // Quick turn acceleration
         if (Mathf.Sign(targetSpeed) != Mathf.Sign(controller.m_Rigidbody2D.linearVelocity.x)
             && Mathf.Abs(targetSpeed) > 0.01f)
         {
             return acceleration * 2f;
         }
-        // Standard movement acceleration
         else if (Mathf.Abs(targetSpeed) > 0.01f)
         {
             return controller.m_Grounded ? acceleration : airAcceleration;
         }
-        // Deceleration when no input
         else
         {
             return deceleration;

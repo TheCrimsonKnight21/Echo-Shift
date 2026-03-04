@@ -1,6 +1,10 @@
 using System.Linq;
 using UnityEngine;
 
+/// <summary>
+/// Detects wall contact and executes wall jumps. Wall detection accounts for player sprite flipping
+/// by using relative positioning rather than absolute left/right checks.
+/// </summary>
 public class PlayerWallJump : MonoBehaviour
 {
     #region Constants
@@ -38,7 +42,7 @@ public class PlayerWallJump : MonoBehaviour
         Collider2D[] rightWallColliders = Physics2D.OverlapCircleAll(m_RightWallCheck.position, k_WallRadius, controller.m_WhatIsGround);
         Collider2D[] leftWallColliders = Physics2D.OverlapCircleAll(m_LeftWallCheck.position, k_WallRadius, controller.m_WhatIsGround);
 
-        // Determine which is actually right/left based on x position (accounts for player flipping)
+        // Account for player flipping by comparing check positions rather than using absolute left/right
         bool rightCheckHasColliders = rightWallColliders.Length > 0 && rightWallColliders.Any(c => c.gameObject != gameObject);
         bool leftCheckHasColliders = leftWallColliders.Length > 0 && leftWallColliders.Any(c => c.gameObject != gameObject);
 

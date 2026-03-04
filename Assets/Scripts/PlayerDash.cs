@@ -1,5 +1,9 @@
 using UnityEngine;
 
+/// <summary>
+/// Handles dash mechanic with cooldown management and instant directional movement.
+/// Dash is purely horizontal with gravity disabled, allowing dashing in place or while airborne.
+/// </summary>
 public class PlayerDash : MonoBehaviour
 {
     #region Serialized Fields
@@ -27,17 +31,14 @@ public class PlayerDash : MonoBehaviour
     #region Main Dash Logic
     public void Dash()
     {
-        // Update timers
         dashTimer -= Time.fixedDeltaTime;
         dashCooldownTimer -= Time.fixedDeltaTime;
 
-        // Check if dash should start
         if (controller.dashPressed && dashCooldownTimer <= 0f)
         {
             StartDash();
         }
 
-        // Check if dash should end
         if (dashTimer <= 0f && dashTimer + Time.fixedDeltaTime > 0f)
         {
             EndDash();
@@ -53,7 +54,7 @@ public class PlayerDash : MonoBehaviour
         controller.dashPressed = false;
         controller.TryChangeState(PlayerController.PlayerState.Dashing);
 
-        // Use move input for direction, or use facing direction if no input
+        // Use movement direction if input exists, otherwise dash in facing direction to allow in-place dashing
         float dashDirection = controller.moveValue != 0f ? controller.moveValue : controller.movement.GetFacingDirection();
         Vector2 velocity = new Vector2(dashDirection * dashMultiplayer, 0f);
         controller.m_Rigidbody2D.linearVelocity = velocity;
